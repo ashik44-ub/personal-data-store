@@ -101,10 +101,12 @@ const Salaries = () => {
         XLSX.writeFile(workbook, 'Salaries_Report.xlsx');
     };
 
-    const filteredSalaries = salaries.filter(sal => 
-        (sal.description && sal.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
-        (sal.amount && sal.amount.toString().includes(searchQuery))
-    );
+    const filteredSalaries = salaries
+        .filter(sal => 
+            (sal.description && sal.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
+            (sal.amount && sal.amount.toString().includes(searchQuery))
+        )
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totalPages = Math.ceil(filteredSalaries.length / itemsPerPage);
     const currentItems = filteredSalaries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

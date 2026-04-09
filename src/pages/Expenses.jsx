@@ -111,11 +111,13 @@ const Expenses = () => {
         XLSX.writeFile(workbook, 'Expenses_Report.xlsx');
     };
 
-    const filteredExpenses = expenses.filter(exp => 
-        (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
-        (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (exp.amount && exp.amount.toString().includes(searchQuery))
-    );
+    const filteredExpenses = expenses
+        .filter(exp => 
+            (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
+            (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (exp.amount && exp.amount.toString().includes(searchQuery))
+        )
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
     const currentItems = filteredExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

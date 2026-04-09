@@ -16,25 +16,25 @@ const Landing = () => {
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-rose-500/10 blur-[120px] pointer-events-none"></div>
 
             {/* Navbar */}
-            <nav className="relative z-20 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
+            <nav className="relative z-20 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-6 max-w-7xl mx-auto gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
-                        <Wallet className="w-7 h-7 text-white" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
+                        <Wallet className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                     </div>
-                    <h1 className="text-2xl font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">FinVault<span className="text-indigo-600">.</span></h1>
+                    <h1 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">FinVault<span className="text-indigo-600">.</span></h1>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                     {user ? (
-                        <Link to="/dashboard" className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20">
+                        <Link to="/dashboard" className="px-4 py-2 sm:px-6 sm:py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20 text-sm sm:text-base">
                             Go to Dashboard
                         </Link>
                     ) : (
                         <>
-                            <Link to="/login" className="px-6 py-3 text-gray-600 font-bold hover:text-gray-900 transition-colors">
+                            <Link to="/login" className="px-3 py-2 sm:px-6 sm:py-3 text-gray-600 font-bold hover:text-gray-900 transition-colors text-sm sm:text-base">
                                 Sign In
                             </Link>
-                            <Link to="/register" className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/30 hover:-translate-y-0.5">
+                            <Link to="/register" className="px-4 py-2 sm:px-6 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/30 hover:-translate-y-0.5 text-sm sm:text-base">
                                 Create Account
                             </Link>
                         </>
@@ -75,18 +75,18 @@ const Landing = () => {
                             <div className="w-3 h-3 rounded-full bg-amber-400"></div>
                             <div className="w-3 h-3 rounded-full bg-green-400"></div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 pb-12 px-4">
-                            <div className="h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-12 px-4">
+                            <div className="h-28 sm:h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
                                 <Wallet className="w-8 h-8 text-indigo-400" />
                                 <div className="w-24 h-3 bg-gray-200 rounded-full"></div>
                                 <div className="w-16 h-2 bg-gray-200 rounded-full"></div>
                             </div>
-                            <div className="h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
+                            <div className="h-28 sm:h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
                                 <Receipt className="w-8 h-8 text-rose-400" />
                                 <div className="w-24 h-3 bg-gray-200 rounded-full"></div>
                                 <div className="w-16 h-2 bg-gray-200 rounded-full"></div>
                             </div>
-                            <div className="h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
+                            <div className="h-28 sm:h-32 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-center items-center gap-2">
                                 <Lock className="w-8 h-8 text-emerald-400" />
                                 <div className="w-24 h-3 bg-gray-200 rounded-full"></div>
                                 <div className="w-16 h-2 bg-gray-200 rounded-full"></div>

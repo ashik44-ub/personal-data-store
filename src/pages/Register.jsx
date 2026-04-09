@@ -1,20 +1,23 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { register } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       await register(username, email, password);
     } catch (err) {
       alert('Registration failed.');
+      setIsLoading(false);
     }
   };
 
@@ -64,9 +67,10 @@ const Register = () => {
           </div>
           <button 
             type="submit" 
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-indigo-200 mt-2"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-indigo-200 mt-2 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Create Account
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
           </button>
         </form>
         <p className="mt-8 text-center text-gray-600">
