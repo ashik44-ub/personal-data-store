@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Edit2, Check, X, Wallet, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Wallet, Download, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const Salaries = () => {
@@ -15,14 +15,18 @@ const Salaries = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const itemsPerPage = 10;
 
     const fetchData = async () => {
+        setIsLoading(true);
         try {
             const res = await api.get('/salaries');
             setSalaries(res.data);
         } catch (error) {
             console.error('Failed to fetch data');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -204,10 +208,24 @@ const Salaries = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {currentItems.map((sal) => {
-                                const isEditing = editId === sal._id;
-                                const editState = editMode[sal._id] || {};
-                                return (
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="4" className="px-8 py-16 text-center">
+                                        <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto mb-4" />
+                                        <p className="text-gray-500 font-medium text-lg">Loading income records...</p>
+                                    </td>
+                                </tr>
+                            ) : currentItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
+                                        {searchQuery ? 'No matching incomes found.' : 'No income recorded yet. Add some above!'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentItems.map((sal) => {
+                                    const isEditing = editId === sal._id;
+                                    const editState = editMode[sal._id] || {};
+                                    return (
                                 <tr key={sal._id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-8 py-6 text-sm font-semibold text-gray-500">
                                         {isEditing ? (
@@ -244,13 +262,8 @@ const Salaries = () => {
                                         )}
                                     </td>
                                 </tr>
-                            )})}
-                            {currentItems.length === 0 && (
-                                <tr>
-                                    <td colSpan="4" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
-                                        {searchQuery ? 'No matching incomes found.' : 'No income recorded yet. Add some above!'}
-                                    </td>
-                                </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

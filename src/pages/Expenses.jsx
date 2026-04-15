@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Edit2, Check, X, Receipt, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Receipt, Download, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const Expenses = () => {
@@ -13,13 +13,16 @@ const Expenses = () => {
     const [editId, setEditId] = useState(null);
     const [editMode, setEditMode] = useState({});
     
-    // Pagination & Search States
+    // Pagination & Search & Filter States
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const itemsPerPage = 15;
 
     const fetchData = async () => {
+        setIsLoading(true);
         try {
             const [expRes, catRes] = await Promise.all([
                 api.get('/expenses'),
@@ -30,6 +33,8 @@ const Expenses = () => {
             if (catRes.data.length > 0 && !category) setCategory(catRes.data[0]._id);
         } catch (error) {
             console.error('Failed to fetch data');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -112,12 +117,16 @@ const Expenses = () => {
     };
 
     const filteredExpenses = expenses
-        .filter(exp => 
-            (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
-            (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (exp.amount && exp.amount.toString().includes(searchQuery))
-        )
+        .filter(exp => {
+            const matchesSearch = (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (exp.amount && exp.amount.toString().includes(searchQuery));
+            const matchesCategory = filterCategory === '' || (exp.category && exp.category._id === filterCategory);
+            return matchesSearch && matchesCategory;
+        })
         .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const totalFilteredAmount = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
 
     const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
     const currentItems = filteredExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -128,6 +137,12 @@ const Expenses = () => {
                 <div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Expenses</h1>
                     <p className="text-gray-500 mt-2 font-medium text-base md:text-lg">Add, update, or delete your categorized expenses</p>
+                    {filterCategory && (
+                        <div className="mt-4 inline-flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <span className="text-sm font-bold text-rose-500 uppercase tracking-wider mb-1">Filtered Total</span>
+                            <span className="text-2xl font-black text-gray-800">৳{totalFilteredAmount.toLocaleString()}</span>
+                        </div>
+                    )}
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
@@ -148,6 +163,20 @@ const Expenses = () => {
                         />
                     </div>
                 
+                    <div className="w-full sm:w-48">
+                        <select 
+                            className="w-full px-4 py-3 bg-white rounded-2xl border border-gray-100 ring-1 ring-gray-100 focus:ring-2 focus:ring-rose-400 transition-all outline-none font-medium text-gray-800 shadow-[0_4px_20px_rgb(0,0,0,0.03)] appearance-none cursor-pointer"
+                            value={filterCategory}
+                            onChange={(e) => {
+                                setFilterCategory(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">All Categories</option>
+                            {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        </select>
+                    </div>
+
                     <button 
                         onClick={exportToExcel}
                         disabled={expenses.length === 0}
@@ -219,22 +248,36 @@ const Expenses = () => {
             <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50/80 border-b border-gray-100">
+                        <thead className="bg-gradient-to-r from-rose-50/40 via-white to-rose-50/40 border-b border-rose-100/60 backdrop-blur-md">
                             <tr>
-                                <th className="px-8 py-5 font-bold text-xs text-gray-400 uppercase tracking-widest">Date</th>
-                                <th className="px-8 py-5 font-bold text-xs text-gray-400 uppercase tracking-widest">Amount</th>
-                                <th className="px-8 py-5 font-bold text-xs text-gray-400 uppercase tracking-widest">Description</th>
-                                <th className="px-8 py-5 font-bold text-xs text-gray-400 uppercase tracking-widest">Category</th>
-                                <th className="px-8 py-5 font-bold text-xs text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-8 py-5 font-bold text-[11px] text-rose-400 uppercase tracking-[0.2em]">Date</th>
+                                <th className="px-8 py-5 font-bold text-[11px] text-rose-400 uppercase tracking-[0.2em]">Amount</th>
+                                <th className="px-8 py-5 font-bold text-[11px] text-rose-400 uppercase tracking-[0.2em]">Description</th>
+                                <th className="px-8 py-5 font-bold text-[11px] text-rose-400 uppercase tracking-[0.2em]">Category</th>
+                                <th className="px-8 py-5 font-bold text-[11px] text-rose-400 uppercase tracking-[0.2em] text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {currentItems.map((exp) => {
-                                const isEditing = editId === exp._id;
-                                const editState = editMode[exp._id] || {};
-                                return (
-                                <tr key={exp._id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-8 py-6 text-sm font-semibold text-gray-500">
+                        <tbody className="divide-y divide-gray-100/50">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="5" className="px-8 py-16 text-center">
+                                        <Loader2 className="w-10 h-10 animate-spin text-rose-500 mx-auto mb-4" />
+                                        <p className="text-gray-500 font-medium text-lg">Loading expenses...</p>
+                                    </td>
+                                </tr>
+                            ) : currentItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
+                                        {searchQuery ? 'No matching expenses found.' : 'No expenses recorded yet.'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentItems.map((exp) => {
+                                    const isEditing = editId === exp._id;
+                                    const editState = editMode[exp._id] || {};
+                                    return (
+                                <tr key={exp._id} className="hover:bg-gradient-to-r hover:from-white hover:to-rose-50/20 hover:shadow-[0_4px_30px_rgb(0,0,0,0.02)] transition-all duration-300 group">
+                                    <td className="px-8 py-6 text-sm font-bold text-gray-600/90">
                                         {isEditing ? (
                                             <input type="date" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-full outline-none" value={editState.date} onChange={(e) => handleEditChange(exp._id, 'date', e.target.value)} />
                                         ) : (
@@ -245,7 +288,7 @@ const Expenses = () => {
                                         {isEditing ? (
                                             <input type="number" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-32 outline-none" value={editState.amount} onChange={(e) => handleEditChange(exp._id, 'amount', e.target.value)} />
                                         ) : (
-                                            <span className="font-extrabold text-lg text-rose-600">৳{exp.amount.toLocaleString()}</span>
+                                            <span className="inline-flex items-center px-4 py-1.5 rounded-xl bg-rose-50/80 border border-rose-100 shadow-sm font-black text-[15px] text-rose-600 tracking-tight">৳{exp.amount.toLocaleString()}</span>
                                         )}
                                     </td>
                                     <td className="px-8 py-6">
@@ -261,7 +304,7 @@ const Expenses = () => {
                                                 {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                                             </select>
                                         ) : (
-                                            <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide uppercase">{exp.category?.name || 'N/A'}</span>
+                                            <span className="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase shadow-[0_2px_10px_rgb(0,0,0,0.02)]">{exp.category?.name || 'N/A'}</span>
                                         )}
                                     </td>
                                     <td className="px-8 py-6 flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -278,13 +321,8 @@ const Expenses = () => {
                                         )}
                                     </td>
                                 </tr>
-                            )})}
-                            {currentItems.length === 0 && (
-                                <tr>
-                                    <td colSpan="5" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
-                                        {searchQuery ? 'No matching expenses found.' : 'No expenses recorded yet.'}
-                                    </td>
-                                </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

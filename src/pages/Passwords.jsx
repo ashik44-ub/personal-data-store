@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Edit2, Check, X, Shield, Eye, EyeOff, Copy, Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Shield, Eye, EyeOff, Copy, Search, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const Passwords = () => {
@@ -15,14 +15,18 @@ const Passwords = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const itemsPerPage = 10;
 
     const fetchData = async () => {
+        setIsLoading(true);
         try {
             const res = await api.get('/passwords');
             setPasswords(res.data);
         } catch (error) {
             console.error('Failed to fetch passwords');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -212,12 +216,26 @@ const Passwords = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {currentItems.map((pwd) => {
-                                const isEditing = editId === pwd._id;
-                                const editState = editMode[pwd._id] || {};
-                                const isVisible = visiblePasswords[pwd._id] || false;
-
-                                return (
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="4" className="px-8 py-16 text-center">
+                                        <Loader2 className="w-10 h-10 animate-spin text-slate-500 mx-auto mb-4" />
+                                        <p className="text-gray-500 font-medium text-lg">Loading passwords...</p>
+                                    </td>
+                                </tr>
+                            ) : currentItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
+                                        {searchQuery ? 'No matching passwords found.' : 'No passwords saved yet.'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentItems.map((pwd) => {
+                                    const isEditing = editId === pwd._id;
+                                    const editState = editMode[pwd._id] || {};
+                                    const isVisible = visiblePasswords[pwd._id] || false;
+    
+                                    return (
                                 <tr key={pwd._id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-8 py-6">
                                         {isEditing ? (
@@ -266,13 +284,8 @@ const Passwords = () => {
                                         )}
                                     </td>
                                 </tr>
-                            )})}
-                            {currentItems.length === 0 && (
-                                <tr>
-                                    <td colSpan="4" className="px-8 py-16 text-center text-gray-400 font-medium text-lg">
-                                        {searchQuery ? 'No matching passwords found.' : 'No passwords saved yet.'}
-                                    </td>
-                                </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

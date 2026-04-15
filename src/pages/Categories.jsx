@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, FolderPlus, Tags } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Tags, Loader2 } from 'lucide-react';
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
     const [newCategory, setNewCategory] = useState('');
     const [deleteTargetId, setDeleteTargetId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const fetchCategories = async () => {
+        setIsLoading(true);
         try {
             const res = await api.get('/categories');
             setCategories(res.data);
         } catch (error) {
             console.error('Failed to fetch categories');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -80,7 +84,12 @@ const Categories = () => {
                </div>
                
                <div className="p-0 bg-gray-50/30">
-                   {categories.length === 0 ? (
+                   {isLoading ? (
+                       <div className="p-16 text-center">
+                           <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
+                           <p className="text-gray-500 font-medium text-lg">Loading categories...</p>
+                       </div>
+                   ) : categories.length === 0 ? (
                        <div className="p-16 text-center text-gray-400 font-medium text-lg">No categories found. Start by creating one above.</div>
                    ) : (
                        <ul className="divide-y divide-gray-100">
