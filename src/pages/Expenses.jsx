@@ -12,10 +12,12 @@ const Expenses = () => {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [editId, setEditId] = useState(null);
     const [editMode, setEditMode] = useState({});
-    
+
     // Pagination & Search & Filter States
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +76,7 @@ const Expenses = () => {
     const updateExpense = async (id) => {
         try {
             const currentItem = editMode[id];
-            await api.put(`/expenses/${id}`, { 
+            await api.put(`/expenses/${id}`, {
                 amount: currentItem.amount,
                 description: currentItem.description,
                 category: currentItem.category,
@@ -103,7 +105,7 @@ const Expenses = () => {
     };
 
     const exportToExcel = () => {
-        const exportData = expenses.map(exp => ({
+        const exportData = filteredExpenses.map(exp => ({
             'Date': new Date(exp.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
             'Amount (৳)': exp.amount,
             'Description': exp.description || '-',
@@ -118,11 +120,31 @@ const Expenses = () => {
 
     const filteredExpenses = expenses
         .filter(exp => {
-            const matchesSearch = (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) || 
+            const matchesSearch = (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (exp.amount && exp.amount.toString().includes(searchQuery));
             const matchesCategory = filterCategory === '' || (exp.category && exp.category._id === filterCategory);
-            return matchesSearch && matchesCategory;
+
+            // Date Filter
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const expDate = new Date(exp.date);
+                expDate.setHours(0, 0, 0, 0);
+
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (expDate < start) matchesDate = false;
+                }
+
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(0, 0, 0, 0);
+                    if (expDate > end) matchesDate = false;
+                }
+            }
+
+            return matchesSearch && matchesCategory && matchesDate;
         })
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -137,14 +159,14 @@ const Expenses = () => {
                 <div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Expenses</h1>
                     <p className="text-gray-500 mt-2 font-medium text-base md:text-lg">Add, update, or delete your categorized expenses</p>
-                    {filterCategory && (
+                    {(searchQuery || filterCategory || startDate || endDate) && (
                         <div className="mt-4 inline-flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <span className="text-sm font-bold text-rose-500 uppercase tracking-wider mb-1">Filtered Total</span>
                             <span className="text-2xl font-black text-gray-800">৳{totalFilteredAmount.toLocaleString()}</span>
                         </div>
                     )}
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                     {/* Search Bar */}
                     <div className="relative w-full sm:w-64 md:w-72">
@@ -162,9 +184,9 @@ const Expenses = () => {
                             }}
                         />
                     </div>
-                
+
                     <div className="w-full sm:w-48">
-                        <select 
+                        <select
                             className="w-full px-4 py-3 bg-white rounded-2xl border border-gray-100 ring-1 ring-gray-100 focus:ring-2 focus:ring-rose-400 transition-all outline-none font-medium text-gray-800 shadow-[0_4px_20px_rgb(0,0,0,0.03)] appearance-none cursor-pointer"
                             value={filterCategory}
                             onChange={(e) => {
@@ -177,13 +199,35 @@ const Expenses = () => {
                         </select>
                     </div>
 
-                    <button 
+                    <div className="flex items-center gap-2 w-full lg:w-auto">
+                        <input
+                            type="date"
+                            className="w-full sm:w-auto px-4 py-3 bg-white rounded-2xl border border-gray-100 ring-1 ring-gray-100 focus:ring-2 focus:ring-rose-400 transition-all outline-none font-medium text-gray-800 shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
+                            value={startDate}
+                            onChange={(e) => {
+                                setStartDate(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        <span className="text-gray-400 font-bold">to</span>
+                        <input
+                            type="date"
+                            className="w-full sm:w-auto px-4 py-3 bg-white rounded-2xl border border-gray-100 ring-1 ring-gray-100 focus:ring-2 focus:ring-rose-400 transition-all outline-none font-medium text-gray-800 shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
+                            value={endDate}
+                            onChange={(e) => {
+                                setEndDate(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                    </div>
+
+                    <button
                         onClick={exportToExcel}
                         disabled={expenses.length === 0}
                         className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-100/50 text-emerald-700 hover:bg-emerald-500 hover:text-white px-5 py-3 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border border-emerald-200"
                     >
                         <Download className="w-5 h-5" />
-                        Export Excel
+                        Export
                     </button>
                 </div>
             </div>
@@ -198,27 +242,27 @@ const Expenses = () => {
                 </h2>
                 <form onSubmit={addExpense} className="grid grid-cols-1 md:grid-cols-5 gap-6 relative z-10">
                     <div className="relative md:col-span-1">
-                         <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400">৳</span>
-                        <input 
-                            type="number" 
-                            placeholder="Amount" 
-                            className="w-full pl-10 pr-5 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-bold text-gray-800 placeholder:font-medium placeholder:text-gray-400 shadow-inner" 
-                            value={amount} 
-                            onChange={(e) => setAmount(e.target.value)} 
-                            required 
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400">৳</span>
+                        <input
+                            type="number"
+                            placeholder="Amount"
+                            className="w-full pl-10 pr-5 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-bold text-gray-800 placeholder:font-medium placeholder:text-gray-400 shadow-inner"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            required
                         />
                     </div>
                     <div className="md:col-span-2">
-                        <input 
-                            type="text" 
-                            placeholder="Description (Optional)" 
-                            className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-medium text-gray-800 placeholder:font-medium placeholder:text-gray-400 shadow-inner" 
-                            value={description} 
-                            onChange={(e) => setDescription(e.target.value)} 
+                        <input
+                            type="text"
+                            placeholder="Description (Optional)"
+                            className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-medium text-gray-800 placeholder:font-medium placeholder:text-gray-400 shadow-inner"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                         />
                     </div>
                     <div className="md:col-span-1">
-                        <select 
+                        <select
                             className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-bold text-gray-700 shadow-inner appearance-none"
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
@@ -229,12 +273,12 @@ const Expenses = () => {
                         </select>
                     </div>
                     <div className="md:col-span-1">
-                        <input 
-                            type="date" 
-                            className="w-full px-4 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-medium text-gray-800 shadow-inner" 
-                            value={date} 
-                            onChange={(e) => setDate(e.target.value)} 
-                            required 
+                        <input
+                            type="date"
+                            className="w-full px-4 py-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all outline-none font-medium text-gray-800 shadow-inner"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            required
                         />
                     </div>
                     <div className="md:col-span-1">
@@ -276,58 +320,58 @@ const Expenses = () => {
                                     const isEditing = editId === exp._id;
                                     const editState = editMode[exp._id] || {};
                                     return (
-                                <tr key={exp._id} className="hover:bg-gradient-to-r hover:from-white hover:to-rose-50/20 hover:shadow-[0_4px_30px_rgb(0,0,0,0.02)] transition-all duration-300 group">
-                                    <td className="px-8 py-6 text-sm font-bold text-gray-600/90">
-                                        {isEditing ? (
-                                            <input type="date" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-full outline-none" value={editState.date} onChange={(e) => handleEditChange(exp._id, 'date', e.target.value)} />
-                                        ) : (
-                                            new Date(exp.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
-                                        )}
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        {isEditing ? (
-                                            <input type="number" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-32 outline-none" value={editState.amount} onChange={(e) => handleEditChange(exp._id, 'amount', e.target.value)} />
-                                        ) : (
-                                            <span className="inline-flex items-center px-4 py-1.5 rounded-xl bg-rose-50/80 border border-rose-100 shadow-sm font-black text-[15px] text-rose-600 tracking-tight">৳{exp.amount.toLocaleString()}</span>
-                                        )}
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        {isEditing ? (
-                                            <input type="text" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-medium w-full outline-none" value={editState.description} onChange={(e) => handleEditChange(exp._id, 'description', e.target.value)} />
-                                        ) : (
-                                            <span className="text-gray-700 font-medium">{exp.description || '-'}</span>
-                                        )}
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        {isEditing ? (
-                                            <select className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold max-w-xs outline-none" value={editState.category} onChange={(e) => handleEditChange(exp._id, 'category', e.target.value)}>
-                                                {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                            </select>
-                                        ) : (
-                                            <span className="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase shadow-[0_2px_10px_rgb(0,0,0,0.02)]">{exp.category?.name || 'N/A'}</span>
-                                        )}
-                                    </td>
-                                    <td className="px-8 py-6 flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                        {isEditing ? (
-                                            <>
-                                                <button onClick={() => updateExpense(exp._id)} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-500 hover:text-white rounded-xl transition-colors"><Check className="w-5 h-5" /></button>
-                                                <button onClick={() => setEditId(null)} className="p-2.5 bg-gray-50 text-gray-400 hover:bg-gray-500 hover:text-white rounded-xl transition-colors"><X className="w-5 h-5" /></button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button onClick={() => startEdit(exp)} className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-xl transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                                <button onClick={() => triggerDelete(exp._id)} className="p-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors"><Trash2 className="w-4 h-4" /></button>
-                                            </>
-                                        )}
-                                    </td>
-                                </tr>
+                                        <tr key={exp._id} className="hover:bg-gradient-to-r hover:from-white hover:to-rose-50/20 hover:shadow-[0_4px_30px_rgb(0,0,0,0.02)] transition-all duration-300 group">
+                                            <td className="px-8 py-6 text-sm font-bold text-gray-600/90">
+                                                {isEditing ? (
+                                                    <input type="date" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-full outline-none" value={editState.date} onChange={(e) => handleEditChange(exp._id, 'date', e.target.value)} />
+                                                ) : (
+                                                    new Date(exp.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                {isEditing ? (
+                                                    <input type="number" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold w-32 outline-none" value={editState.amount} onChange={(e) => handleEditChange(exp._id, 'amount', e.target.value)} />
+                                                ) : (
+                                                    <span className="inline-flex items-center px-4 py-1.5 rounded-xl bg-rose-50/80 border border-rose-100 shadow-sm font-black text-[15px] text-rose-600 tracking-tight">৳{exp.amount.toLocaleString()}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                {isEditing ? (
+                                                    <input type="text" className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-medium w-full outline-none" value={editState.description} onChange={(e) => handleEditChange(exp._id, 'description', e.target.value)} />
+                                                ) : (
+                                                    <span className="text-gray-700 font-medium">{exp.description || '-'}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                {isEditing ? (
+                                                    <select className="border-none ring-1 ring-rose-500 bg-rose-50 px-4 py-2 rounded-xl text-rose-800 font-bold max-w-xs outline-none" value={editState.category} onChange={(e) => handleEditChange(exp._id, 'category', e.target.value)}>
+                                                        {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                                    </select>
+                                                ) : (
+                                                    <span className="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase shadow-[0_2px_10px_rgb(0,0,0,0.02)]">{exp.category?.name || 'N/A'}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-6 flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                {isEditing ? (
+                                                    <>
+                                                        <button onClick={() => updateExpense(exp._id)} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-500 hover:text-white rounded-xl transition-colors"><Check className="w-5 h-5" /></button>
+                                                        <button onClick={() => setEditId(null)} className="p-2.5 bg-gray-50 text-gray-400 hover:bg-gray-500 hover:text-white rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button onClick={() => startEdit(exp)} className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-xl transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                                        <button onClick={() => triggerDelete(exp._id)} className="p-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                    </>
+                                                )}
+                                            </td>
+                                        </tr>
                                     );
                                 })
                             )}
                         </tbody>
                     </table>
                 </div>
-                
+
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-5 border-t border-gray-100 bg-gray-50/50">
@@ -335,7 +379,7 @@ const Expenses = () => {
                             Showing <span className="font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredExpenses.length)}</span> of <span className="font-bold text-gray-800">{filteredExpenses.length}</span> results
                         </span>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                 disabled={currentPage === 1}
                                 className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -345,7 +389,7 @@ const Expenses = () => {
                             <span className="px-4 py-2 rounded-lg bg-rose-500 text-white font-bold text-sm shadow-sm">
                                 {currentPage} / {totalPages}
                             </span>
-                            <button 
+                            <button
                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                 disabled={currentPage === totalPages}
                                 className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
